@@ -92,7 +92,7 @@ if sf is not None and canvas is not None and emailed is not None:
 #        "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
 #        "LMS Activity": cutoff_lms if use_lms_filter else "Disabled",
 #        "SAA Activity": cutoff_saa if use_saa_filter else "Disabled"
-    })
+#    })
 
     # --- Apply Date Filters Conditionally ---
     filtered = sf.copy()
