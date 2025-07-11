@@ -95,9 +95,10 @@ if sf is not None and canvas is not None and emailed is not None:
     st.write(f"\U0001F4DD Matched to Canvas: {len(canvas_matched)} students")
 
     # --- Identify Assignment Columns (Pre/Milestone/Summative) ---
-    pre_cols = [col for col in canvas.columns if re.search(r"\\b\\d{1,2}\\.0[A-Z]?[ :]?.*Pre-Assessment.*", col, re.IGNORECASE)]
-    ms_cols  = [col for col in canvas.columns if re.search(r"\\b\\d{1,2}\\.0[A-Z]?[ :]?.*Milestone.*", col, re.IGNORECASE)]
-    sum_cols = [col for col in canvas.columns if re.search(r"\\b\\d{1,2}\\.0[A-Z]?[ :]?.*Summative.*", col, re.IGNORECASE)]
+    pre_cols = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]*Pre-Assessment", col, re.IGNORECASE)]
+    ms_cols  = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]*Milestone", col, re.IGNORECASE)]
+    sum_cols = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]*Summative", col, re.IGNORECASE)]
+
 
     # --- Stop if Pre-Assessment Columns Are Missing ---
     if not pre_cols:
