@@ -58,9 +58,9 @@ if sf is not None and canvas is not None and emailed is not None:
     # --- Sidebar: User Filter Controls ---
     st.sidebar.header("\U0001F50D Filter Criteria")
     days_since_enrollment = st.sidebar.number_input("\U0001F4C5 Max Days Since Enrollment", min_value=0, value=30)
-    days_since_lms = st.sidebar.number_input("\U0001F4CA Max Days Since Last LMS Activity", min_value=0, value=14)
-    days_since_saa = st.sidebar.number_input("\U0001F9ED Max Days Since Last SAA Activity", min_value=0, value=14)
-    max_pre_completed = st.sidebar.slider("\u2B50 Highest Pre-Assessment Completed (1–12)", min_value=1, max_value=12, value=1)
+    days_since_lms = st.sidebar.number_input("\U0001F4CA Max Days Since Last LMS Activity", min_value=0, value=7)
+    days_since_saa = st.sidebar.number_input("\U0001F9ED Max Days Since Last SAA Activity", min_value=0, value=7)
+    max_pre_completed = st.sidebar.slider("\u2B50 Highest Pre-Assessment Completed (1–12)", min_value=0, max_value=12, value=0)
 
     # --- Log: Initial Salesforce Load ---
     st.write(f"\U0001F9FE Initial students after loading Salesforce: {len(sf)}")
@@ -105,13 +105,29 @@ if sf is not None and canvas is not None and emailed is not None:
         st.warning("\u26A0\ufe0f No Pre-Assessment columns found. Please check your Canvas export.")
         st.stop()
 
-    # --- Filter by Highest Pre-Assessment Completed ---
+    # --- Compute Highest Completed Pre-Assessment per Student ---
     pre_map = {col: int(col.split('.')[0]) for col in pre_cols}
-    relevant_pre_cols = [col for col, num in pre_map.items() if num >= max_pre_completed]
-    canvas_filtered_ids = canvas[relevant_pre_cols].notna().any(axis=1)
-    canvas_ids = set(canvas[canvas_filtered_ids]['SIS User ID'])
-    filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(canvas_ids)]
-    st.write(f"\u2B50 After Pre-Assessment filter: {len(filtered_sf)} students")
+
+    # Extract only Pre columns for analysis
+    pre_scores = canvas[['SIS User ID'] + pre_cols].copy()
+
+    # Replace non-numeric/empty entries with NaN, force numeric (0+ counts as completed)
+    for col in pre_cols:
+        pre_scores[col] = pd.to_numeric(pre_scores[col], errors='coerce')
+
+    # For each row, find the highest-numbered Pre column with a non-NaN value
+    def max_completed_pre(row):
+        completed = [pre_map[col] for col in pre_cols if not pd.isna(row[col])]
+        return max(completed) if completed else 0
+
+    pre_scores['Highest_Pre_Completed'] = pre_scores.apply(max_completed_pre, axis=1)
+
+    # Keep only students with exactly the selected max
+    eligible_ids = pre_scores[pre_scores['Highest_Pre_Completed'] == max_pre_completed]['SIS User ID']
+    filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(eligible_ids)]
+
+    st.write(f"🌟 After Pre-Assessment filter: {len(filtered_sf)} students")
+
 
     # --- Merge Canvas Columns Into Output ---
     canvas_subset = canvas[['SIS User ID'] + pre_cols + ms_cols + sum_cols]
