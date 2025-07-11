@@ -85,7 +85,12 @@ if salesforce_file and canvas_file and emailed_file:
 
     # Download button
     csv = output_df.to_csv(index=False).encode('utf-8')
-    st.download_button("⬇️ Download CSV", data=csv, file_name="students_to_welcome.csv")
+    # Generate timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"students_to_welcome_{timestamp}.csv"
+
+    # Download button with timestamped filename
+    st.download_button("⬇️ Download CSV", data=csv, file_name=filename)
 
 else:
     st.info("👆 Please upload all three CSV files to begin.")
