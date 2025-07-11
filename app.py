@@ -92,9 +92,19 @@ if sf is not None and canvas is not None and emailed is not None:
 #    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
 
     today = datetime.today()
-    cutoff_enroll = today - timedelta(days=days_since_enrollment)
-    cutoff_lms = today - timedelta(days=days_since_lms)
-    cutoff_saa = today - timedelta(days=days_since_saa)
+
+    cutoff_enroll = None
+    if use_enroll_filter:
+        cutoff_enroll = today - timedelta(days=days_since_enrollment)
+
+    cutoff_lms = None
+    if use_lms_filter:
+        cutoff_lms = today - timedelta(days=days_since_lms)
+
+    cutoff_saa = None
+    if use_saa_filter:
+        cutoff_saa = today - timedelta(days=days_since_saa)
+
 
 #    st.write("📅 Date Cutoffs:", {
 #        "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
