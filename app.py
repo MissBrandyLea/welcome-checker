@@ -125,7 +125,7 @@ if sf is not None and canvas is not None and emailed is not None:
     # 🔍 Check for rows missing CCC ID (debugging step)
     st.write("🕵️‍♀️ Rows with missing CCC ID:", output_df[output_df['CCC ID'].isna()])
 
-st.write(output_df)
+    st.write(output_df)
 
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
