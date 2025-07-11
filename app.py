@@ -116,7 +116,7 @@ if sf is not None and canvas is not None and emailed is not None:
     # --- Merge Canvas Columns Into Output ---
     canvas_subset = canvas[['SIS User ID'] + pre_cols + ms_cols + sum_cols]
     canvas_subset = canvas_subset.rename(columns={'SIS User ID': 'CCC ID'})
-    output_df = pd.merge(filtered_sf, canvas_subset, on='CCC ID', how='left')
+    output_df = pd.merge(filtered_sf, canvas_subset, on='CCC ID', how='inner')
 
     # --- Final Output Display and Export ---
     st.subheader("\U0001F4CB Students to Welcome (Filtered)")
