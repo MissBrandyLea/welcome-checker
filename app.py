@@ -79,19 +79,19 @@ if sf is not None and canvas is not None and emailed is not None:
     max_pre_completed = st.sidebar.slider("⭐ Highest Pre-Assessment Completed (0–12)", min_value=0, max_value=12, value=0)
 
     # --- Diagnostics: Date Nulls and Cutoffs ---
-    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
-    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
-    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
+#    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
+#    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
+#    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
 
     today = datetime.today()
     cutoff_enroll = today - timedelta(days=days_since_enrollment)
     cutoff_lms = today - timedelta(days=days_since_lms)
     cutoff_saa = today - timedelta(days=days_since_saa)
 
-    st.write("📅 Date Cutoffs:", {
-        "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
-        "LMS Activity": cutoff_lms if use_lms_filter else "Disabled",
-        "SAA Activity": cutoff_saa if use_saa_filter else "Disabled"
+#    st.write("📅 Date Cutoffs:", {
+#        "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
+#        "LMS Activity": cutoff_lms if use_lms_filter else "Disabled",
+#        "SAA Activity": cutoff_saa if use_saa_filter else "Disabled"
     })
 
     # --- Apply Date Filters Conditionally ---
