@@ -122,10 +122,8 @@ if sf is not None and canvas is not None and emailed is not None:
     st.subheader("📋 Students to Welcome (Filtered)")
     st.write(f"🎯 **{len(output_df)} students** meet all filter criteria.")
 
-    # 🔍 Check for rows missing CCC ID (debugging step)
-    st.write("🕵️‍♀️ Rows with missing CCC ID:", output_df[output_df['CCC ID'].isna()])
-
-    st.write(output_df)
+    output_df.index = output_df.index + 1  # Shift index to start at 1
+    st.dataframe(output_df, use_container_width=True)
 
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
