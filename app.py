@@ -65,18 +65,26 @@ if sf is not None and canvas is not None and emailed is not None:
     st.sidebar.header("🔧 Filter Settings")
 
     # Date filters
-    use_enroll_filter = st.sidebar.checkbox("📅 Filter by Enrollment Date", value=True)
-    days_since_enrollment = st.sidebar.number_input("🗓️ Max Days Since Enrollment", min_value=0, value=30)
+    use_enroll_filter = st.sidebar.checkbox("📅 Filter by Enrollment Date", value=False)
+    if use_enroll_filter:
+        days_since_enrollment = st.sidebar.number_input("🗓️ Max Days Since Enrollment", min_value=0, value=30)
 
-    use_lms_filter = st.sidebar.checkbox("📊 Filter by Last LMS Activity", value=True)
-    days_since_lms = st.sidebar.number_input("📘 Max Days Since Last LMS Activity", min_value=0, value=7)
 
-    use_saa_filter = st.sidebar.checkbox("🧠 Filter by Last SAA Activity", value=True)
-    days_since_saa = st.sidebar.number_input("🧪 Max Days Since Last SAA Activity", min_value=0, value=7)
+    use_lms_filter = st.sidebar.checkbox("📊 Filter by Last LMS Activity", value=False)
+    if use_lms_filter:
+        days_since_lms = st.sidebar.number_input("📊 Max Days Since Last LMS Activity", min_value=0, value=7)
+
+
+    use_saa_filter = st.sidebar.checkbox("🧠 Filter by Last SAA Activity", value=False)
+    if use_saa_filter:
+        days_since_saa = st.sidebar.number_input("🧠 Max Days Since Last SAA Activity", min_value=0, value=7)
+
 
     # Pre-assessment filter
-    use_pre_filter = st.sidebar.checkbox("🌟 Filter by Pre-Assessment Completed", value=True)
-    max_pre_completed = st.sidebar.slider("⭐ Highest Pre-Assessment Completed (0–12)", min_value=0, max_value=12, value=0)
+    use_pre_filter = st.sidebar.checkbox("🌟 Filter by Pre-Assessment Completed", value=False)
+    if use_pre_filter:
+        max_pre_completed = st.sidebar.slider("🌟 Highest Pre-Assessment Completed (0–12)", min_value=0, max_value=12, value=0)
+
 
     # --- Diagnostics: Date Nulls and Cutoffs ---
 #    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
