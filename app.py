@@ -106,12 +106,12 @@ if sf is not None and canvas is not None and emailed is not None:
         st.stop()
 
     # --- Filter by Highest Pre-Assessment Completed ---
-    #pre_map = {col: int(col.split('.')[0]) for col in pre_cols}
-    #relevant_pre_cols = [col for col, num in pre_map.items() if num >= max_pre_completed]
-    #canvas_filtered_ids = canvas[relevant_pre_cols].notna().any(axis=1)
-    #canvas_ids = set(canvas[canvas_filtered_ids]['SIS User ID'])
-    #filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(canvas_ids)]
-    #st.write(f"\u2B50 After Pre-Assessment filter: {len(filtered_sf)} students")
+    pre_map = {col: int(col.split('.')[0]) for col in pre_cols}
+    relevant_pre_cols = [col for col, num in pre_map.items() if num >= max_pre_completed]
+    canvas_filtered_ids = canvas[relevant_pre_cols].notna().any(axis=1)
+    canvas_ids = set(canvas[canvas_filtered_ids]['SIS User ID'])
+    filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(canvas_ids)]
+    st.write(f"\u2B50 After Pre-Assessment filter: {len(filtered_sf)} students")
 
     # --- Merge Canvas Columns Into Output ---
     canvas_subset = canvas[['SIS User ID'] + pre_cols + ms_cols + sum_cols]
