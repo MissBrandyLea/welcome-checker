@@ -56,11 +56,49 @@ if sf is not None and canvas is not None and emailed is not None:
     emailed.columns = [col.strip() for col in emailed.columns]
 
     # --- Sidebar: User Filter Controls ---
-    st.sidebar.header("\U0001F50D Filter Criteria")
-    days_since_enrollment = st.sidebar.number_input("\U0001F4C5 Max Days Since Enrollment", min_value=0, value=30)
-    days_since_lms = st.sidebar.number_input("\U0001F4CA Max Days Since Last LMS Activity", min_value=0, value=7)
-    days_since_saa = st.sidebar.number_input("\U0001F9ED Max Days Since Last SAA Activity", min_value=0, value=7)
-    max_pre_completed = st.sidebar.slider("\u2B50 Highest Pre-Assessment Completed (1–12)", min_value=0, max_value=12, value=0)
+    st.sidebar.header("🔧 Filter Settings")
+
+    # Filter toggles
+    use_enroll_filter = st.sidebar.checkbox("📅 Filter by Enrollment Date", value=True)
+    use_lms_filter = st.sidebar.checkbox("📊 Filter by Last LMS Activity", value=True)
+    use_saa_filter = st.sidebar.checkbox("🧠 Filter by Last SAA Activity", value=True)
+
+    # Filter input values
+    days_since_enrollment = st.sidebar.number_input("🗓️ Max Days Since Enrollment", min_value=0, value=300)
+    days_since_lms = st.sidebar.number_input("📘 Max Days Since Last LMS Activity", min_value=0, value=14)
+    days_since_saa = st.sidebar.number_input("🧪 Max Days Since Last SAA Activity", min_value=0, value=14)
+
+    # Calculate cutoff dates
+    today = datetime.today()
+    cutoff_enroll = today - timedelta(days=days_since_enrollment)
+    cutoff_lms = today - timedelta(days=days_since_lms)
+    cutoff_saa = today - timedelta(days=days_since_saa)
+
+    # Diagnostics
+    st.write("📅 Date Cutoffs:", {
+        "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
+        "LMS Activity": cutoff_lms if use_lms_filter else "Disabled",
+        "SAA Activity": cutoff_saa if use_saa_filter else "Disabled"
+    })
+
+    # Start filtering
+    filtered = sf.copy()
+    if use_enroll_filter:
+        filtered = filtered[filtered['Date of Enrollment'] >= cutoff_enroll]
+        st.write("📆 After Enrollment Date Filter:", len(filtered))
+
+    if use_lms_filter:
+        filtered = filtered[filtered['Last LMS Activity Timestamp'] >= cutoff_lms]
+        st.write("📊 After LMS Activity Filter:", len(filtered))
+
+    if use_saa_filter:
+        filtered = filtered[filtered['Last LMS SAA Timestamp'] >= cutoff_saa]
+        st.write("🧠 After SAA Activity Filter:", len(filtered))
+
+    sf = filtered  # Update main df
+    st.write(f"🧮 After date filters: {len(sf)} students")
+
+
 
     # --- Log: Initial Salesforce Load ---
     st.write(f"\U0001F9FE Initial students after loading Salesforce: {len(sf)}")
