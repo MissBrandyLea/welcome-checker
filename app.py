@@ -1,13 +1,51 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import re
 
-st.title("🎓 Student Welcome Email Checker")
+st.title("🎓 Student Welcome Email Checker (Customizable)")
 
 # Upload your CSVs
 salesforce_file = st.file_uploader("📥 Upload Salesforce Export", type="csv")
+  st.subheader("🧾 Salesforce File Check")
+    required_sf_headers = [
+        "First Name", "Last Name", "Email", "Calbright Email",
+        "CCC ID", "Date of Enrollment",
+        "Last LMS Activity Timestamp", "Last LMS SAA Timestamp"
+    ]
+    for header in required_sf_headers:
+        if header in sf.columns:
+            st.write(f"✅ `{header}` found")
+        else:
+            st.write(f"❌ `{header}` missing")
 canvas_file = st.file_uploader("📥 Upload Canvas Gradebook Export", type="csv")
+    st.subheader("🧾 Canvas File Check")
+    required_canvas_headers = ["SIS User ID"]
+    # Also check presence of at least *some* Pre/Milestone/Summative columns
+    has_pre = any("Pre-Assessment" in col for col in canvas.columns)
+    has_milestone = any("Milestone" in col for col in canvas.columns)
+    has_summative = any("Summative" in col for col in canvas.columns)
+
+    for header in required_canvas_headers:
+        if header in canvas.columns:
+            st.write(f"✅ `{header}` found")
+        else:
+            st.write(f"❌ `{header}` missing")
+
+    st.write(f"🔍 Assignment Columns:")
+    st.write(f"{'✅' if has_pre else '❌'} Pre-Assessment")
+    st.write(f"{'✅' if has_milestone else '❌'} Milestone")
+    st.write(f"{'✅' if has_summative else '❌'} Summative")
+
 emailed_file = st.file_uploader("📥 Upload Welcome Email Log", type="csv")
+    st.subheader("🧾 Welcome Email Log Check")
+    required_emailed_headers = ["ccc_id"]
+    for header in required_emailed_headers:
+        if header in emailed.columns:
+            st.write(f"✅ `{header}` found")
+        else:
+            st.write(f"❌ `{header}` missing")
+
 
 if salesforce_file and canvas_file and emailed_file:
     # Load CSVs into DataFrames
@@ -15,81 +53,71 @@ if salesforce_file and canvas_file and emailed_file:
     canvas = pd.read_csv(canvas_file)
     emailed = pd.read_csv(emailed_file)
 
-    # Rename columns for consistency (trim spaces)
+    # Clean column headers
     sf.columns = [col.strip() for col in sf.columns]
     canvas.columns = [col.strip() for col in canvas.columns]
     emailed.columns = [col.strip() for col in emailed.columns]
 
-    # Convert Join Date
-    if 'Date of Enrollment' in sf.columns:
-        sf['Date of Enrollment'] = pd.to_datetime(sf['Date of Enrollment'], errors='coerce')
-        date_cutoff = datetime.today() - timedelta(days=30)
-        recent_sf = sf[sf['Date of Enrollment'] >= date_cutoff]
-    else:
-        st.error("❌ 'Date of Enrollment' not found in Salesforce CSV.")
-        st.stop()
+    # User filter inputs
+    st.sidebar.header("🔍 Filter Criteria")
+    days_since_enrollment = st.sidebar.number_input("📅 Max Days Since Enrollment", min_value=0, value=30)
+    days_since_lms = st.sidebar.number_input("📊 Max Days Since Last LMS Activity", min_value=0, value=14)
+    days_since_saa = st.sidebar.number_input("🧭 Max Days Since Last SAA Activity", min_value=0, value=14)
+    max_pre_completed = st.sidebar.slider("⭐ Highest Pre-Assessment Completed (1–12)", min_value=1, max_value=12, value=1)
 
-    # Match CCC IDs (primary key)
-    canvas_ids = set(canvas['SIS User ID'].astype(str))
+    # Convert Salesforce dates
+    sf['Date of Enrollment'] = pd.to_datetime(sf['Date of Enrollment'], errors='coerce')
+    sf['Last LMS Activity Timestamp'] = pd.to_datetime(sf['Last LMS Activity Timestamp'], errors='coerce')
+    sf['Last LMS SAA Timestamp'] = pd.to_datetime(sf['Last LMS SAA Timestamp'], errors='coerce')
+
+    # Date cutoffs
+    today = datetime.today()
+    cutoff_enroll = today - timedelta(days=days_since_enrollment)
+    cutoff_lms = today - timedelta(days=days_since_lms)
+    cutoff_saa = today - timedelta(days=days_since_saa)
+
+    # Apply filters
+    sf = sf[
+        (sf['Date of Enrollment'] >= cutoff_enroll) &
+        (sf['Last LMS Activity Timestamp'] >= cutoff_lms) &
+        (sf['Last LMS SAA Timestamp'] >= cutoff_saa)
+    ]
+
+    # Filter out already emailed
+    sf['CCC ID'] = sf['CCC ID'].astype(str)
     emailed_ids = set(emailed['ccc_id'].astype(str))
-    
-    # Pre-filter: only students from Salesforce who joined recently
-    recent_sf['CCC ID'] = recent_sf['CCC ID'].astype(str)
-    filtered_sf = recent_sf[recent_sf['CCC ID'].isin(canvas_ids)]
-    filtered_sf = filtered_sf[~filtered_sf['CCC ID'].isin(emailed_ids)]
+    filtered_sf = sf[~sf['CCC ID'].isin(emailed_ids)]
 
-    # Optional: check if Pre-Assessment or Milestone was submitted in Canvas
-    pre_cols = [col for col in canvas.columns if col.startswith("1.0: Pre-Assessment")]
-    ms_cols = [col for col in canvas.columns if col.startswith("1.0: Milestone")]
+    # Match Canvas student IDs
+    canvas['SIS User ID'] = canvas['SIS User ID'].astype(str)
+    canvas_matched = canvas[canvas['SIS User ID'].isin(filtered_sf['CCC ID'])]
 
-    if pre_cols and ms_cols:
-        # Merge student activity info (not required, but good context)
-        activity_status = []
-        for _, row in filtered_sf.iterrows():
-            sid = row['CCC ID']
-            canvas_row = canvas[canvas['SIS User ID'].astype(str) == sid]
-            if canvas_row.empty:
-                activity_status.append("Not in Canvas")
-                continue
+    # Identify all assignment columns
+    pre_cols = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]?.*Pre-Assessment.*", col, re.IGNORECASE)]
+    ms_cols  = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]?.*Milestone.*", col, re.IGNORECASE)]
+    sum_cols = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]?.*Summative.*", col, re.IGNORECASE)]
 
-            pre_submitted = canvas_row[pre_cols].notna().any(axis=1).values[0]
-            ms_submitted = canvas_row[ms_cols].notna().any(axis=1).values[0]
 
-            if pre_submitted and ms_submitted:
-                activity_status.append("✅ Pre + Milestone")
-            elif pre_submitted:
-                activity_status.append("🟡 Pre only")
-            else:
-                activity_status.append("❌ No activity")
+    # Filter by highest pre-assessment completed
+    pre_map = {col: int(col.split('.')[0]) for col in pre_cols}
+    relevant_pre_cols = [col for col, num in pre_map.items() if num >= max_pre_completed]
+    canvas_filtered_ids = canvas[relevant_pre_cols].notna().any(axis=1)
+    canvas_ids = set(canvas[canvas_filtered_ids]['SIS User ID'])
+    filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(canvas_ids)]
 
-        filtered_sf['Activity Status'] = activity_status
+    # Merge relevant Canvas activity into output
+    canvas_subset = canvas[['SIS User ID'] + pre_cols + ms_cols + sum_cols]
+    canvas_subset = canvas_subset.rename(columns={'SIS User ID': 'CCC ID'})
+    output_df = pd.merge(filtered_sf, canvas_subset, on='CCC ID', how='left')
 
- # Add Canvas activity columns (Pre-Assessment and Milestone) to output
-    filtered_canvas = canvas[canvas['SIS User ID'].isin(filtered_sf['CCC ID'])][['SIS User ID'] + pre_cols + ms_cols]
-    filtered_canvas = filtered_canvas.rename(columns={'SIS User ID': 'CCC ID'})
-
-    # Merge into final DataFrame
-    output_df = pd.merge(filtered_sf, filtered_canvas, on='CCC ID', how='left')
-
-    # Final selected columns (from Salesforce + Canvas)
-    final_cols = [
-        'CCC ID', 'First Name', 'Last Name', 'Email', 'Calbright Email', 'Date of Enrollment',
-        'Activity Status'
-    ] + pre_cols + ms_cols
-
-    output_df = output_df[final_cols]
-
-    # Display and export
-    st.subheader("📋 Students to Welcome")
+    # Final output
+    st.subheader("📋 Students to Welcome (Filtered)")
     st.write(output_df)
 
-    # Download button
-    csv = output_df.to_csv(index=False).encode('utf-8')
-    # Generate timestamp
+    # Export CSV with timestamped filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"students_to_welcome_{timestamp}.csv"
-
-    # Download button with timestamped filename
+    csv = output_df.to_csv(index=False).encode('utf-8')
     st.download_button("⬇️ Download CSV", data=csv, file_name=filename)
 
 else:
