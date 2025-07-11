@@ -50,7 +50,8 @@ if emailed_file:
 
 # --- Process Data if All Uploaded ---
 if sf is not None and canvas is not None and emailed is not None:
-        # --- Clean Column Headers ---
+
+    # --- Clean Column Headers ---
     sf.columns = [col.strip() for col in sf.columns]
     canvas.columns = [col.strip() for col in canvas.columns]
     emailed.columns = [col.strip() for col in emailed.columns]
@@ -60,24 +61,32 @@ if sf is not None and canvas is not None and emailed is not None:
     sf['Last LMS Activity Timestamp'] = pd.to_datetime(sf['Last LMS Activity Timestamp'], errors='coerce')
     sf['Last LMS SAA Timestamp'] = pd.to_datetime(sf['Last LMS SAA Timestamp'], errors='coerce')
 
-    # --- Toggle Inputs ---
+    # --- Sidebar: Filter Toggles and Inputs ---
+    st.sidebar.header("🔧 Filter Settings")
+
+    # Date filters
     use_enroll_filter = st.sidebar.checkbox("📅 Filter by Enrollment Date", value=True)
     days_since_enrollment = st.sidebar.number_input("🗓️ Max Days Since Enrollment", min_value=0, value=30)
+
     use_lms_filter = st.sidebar.checkbox("📊 Filter by Last LMS Activity", value=True)
     days_since_lms = st.sidebar.number_input("📘 Max Days Since Last LMS Activity", min_value=0, value=7)
+
     use_saa_filter = st.sidebar.checkbox("🧠 Filter by Last SAA Activity", value=True)
     days_since_saa = st.sidebar.number_input("🧪 Max Days Since Last SAA Activity", min_value=0, value=7)
 
-    # --- Cutoff Dates ---
+    # Pre-assessment filter
+    use_pre_filter = st.sidebar.checkbox("🌟 Filter by Pre-Assessment Completed", value=True)
+    max_pre_completed = st.sidebar.slider("⭐ Highest Pre-Assessment Completed (0–12)", min_value=0, max_value=12, value=0)
+
+    # --- Diagnostics: Date Nulls and Cutoffs ---
+    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
+    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
+    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
+
     today = datetime.today()
     cutoff_enroll = today - timedelta(days=days_since_enrollment)
     cutoff_lms = today - timedelta(days=days_since_lms)
     cutoff_saa = today - timedelta(days=days_since_saa)
-
-    # --- Diagnostics ---
-    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
-    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
-    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
 
     st.write("📅 Date Cutoffs:", {
         "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
@@ -85,7 +94,7 @@ if sf is not None and canvas is not None and emailed is not None:
         "SAA Activity": cutoff_saa if use_saa_filter else "Disabled"
     })
 
-    # --- Apply Filters Conditionally ---
+    # --- Apply Date Filters Conditionally ---
     filtered = sf.copy()
     if use_enroll_filter:
         filtered = filtered[filtered['Date of Enrollment'] >= cutoff_enroll]
@@ -102,51 +111,47 @@ if sf is not None and canvas is not None and emailed is not None:
     sf = filtered  # Final filtered Salesforce
     st.write(f"🧮 After date filters: {len(sf)} students")
 
-
     # --- Exclude Students Who Already Received Welcome Email ---
     sf['CCC ID'] = sf['CCC ID'].astype(str)
     emailed_ids = set(emailed['ccc_id'].astype(str))
     filtered_sf = sf[~sf['CCC ID'].isin(emailed_ids)]
-    st.write(f"\U0001F4E4 After removing emailed: {len(filtered_sf)} students")
+    st.write("📤 After removing emailed:", len(filtered_sf), "students")
 
-    # --- Inner Join: Keep Only CCC IDs Present in Canvas ---
+    # --- Canvas Inner Join on CCC ID ---
     canvas['SIS User ID'] = canvas['SIS User ID'].astype(str)
     canvas_matched = canvas[canvas['SIS User ID'].isin(filtered_sf['CCC ID'])]
-    st.write(f"\U0001F4DD Matched to Canvas: {len(canvas_matched)} students")
+    st.write("📝 Matched to Canvas:", len(canvas_matched), "students")
 
     # --- Identify Assignment Columns (Pre/Milestone/Summative) ---
     pre_cols = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]*Pre-Assessment", col, re.IGNORECASE)]
     ms_cols  = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]*Milestone", col, re.IGNORECASE)]
     sum_cols = [col for col in canvas.columns if re.search(r"\b\d{1,2}\.0[A-Z]?[ :]*Summative", col, re.IGNORECASE)]
 
-
     # --- Stop if Pre-Assessment Columns Are Missing ---
     if not pre_cols:
-        st.warning("\u26A0\ufe0f No Pre-Assessment columns found. Please check your Canvas export.")
+        st.warning("⚠️ No Pre-Assessment columns found. Please check your Canvas export.")
         st.stop()
 
     # --- Compute Highest Completed Pre-Assessment per Student ---
     pre_map = {col: int(col.split('.')[0]) for col in pre_cols}
-
-    # Extract only Pre columns for analysis
     pre_scores = canvas[['SIS User ID'] + pre_cols].copy()
 
-    # Replace non-numeric/empty entries with NaN, force numeric (0+ counts as completed)
+    # Clean up scores: Convert to numeric and treat 0+ as completed
     for col in pre_cols:
         pre_scores[col] = pd.to_numeric(pre_scores[col], errors='coerce')
 
-    # For each row, find the highest-numbered Pre column with a non-NaN value
     def max_completed_pre(row):
         completed = [pre_map[col] for col in pre_cols if not pd.isna(row[col])]
         return max(completed) if completed else 0
 
     pre_scores['Highest_Pre_Completed'] = pre_scores.apply(max_completed_pre, axis=1)
 
-    # Keep only students with exactly the selected max
-    eligible_ids = pre_scores[pre_scores['Highest_Pre_Completed'] == max_pre_completed]['SIS User ID']
-    filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(eligible_ids)]
+    # --- Apply Pre-Assessment Filter Conditionally ---
+    if use_pre_filter:
+        eligible_ids = pre_scores[pre_scores['Highest_Pre_Completed'] == max_pre_completed]['SIS User ID']
+        filtered_sf = filtered_sf[filtered_sf['CCC ID'].isin(eligible_ids)]
+        st.write("🌟 After Pre-Assessment filter:", len(filtered_sf), "students")
 
-    st.write(f"🌟 After Pre-Assessment filter: {len(filtered_sf)} students")
 
 
     # --- Merge Canvas Columns Into Output ---
