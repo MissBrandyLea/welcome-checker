@@ -71,17 +71,17 @@ if sf is not None and canvas is not None and emailed is not None:
     sf['Last LMS SAA Timestamp'] = pd.to_datetime(sf['Last LMS SAA Timestamp'], errors='coerce')
 
     # --- Apply Date Filters ---
-    #today = datetime.today()
-    #cutoff_enroll = today - timedelta(days=days_since_enrollment)
-    #cutoff_lms = today - timedelta(days=days_since_lms)
-    #cutoff_saa = today - timedelta(days=days_since_saa)
+    today = datetime.today()
+    cutoff_enroll = today - timedelta(days=days_since_enrollment)
+    cutoff_lms = today - timedelta(days=days_since_lms)
+    cutoff_saa = today - timedelta(days=days_since_saa)
 
-    #sf = sf[
-    #    (sf['Date of Enrollment'] >= cutoff_enroll) &
-    #    (sf['Last LMS Activity Timestamp'] >= cutoff_lms) &
-    #    (sf['Last LMS SAA Timestamp'] >= cutoff_saa)
-    #]
-    #st.write(f"\U0001F4C6 After date filters: {len(sf)} students")
+    sf = sf[
+        (sf['Date of Enrollment'] >= cutoff_enroll) &
+        (sf['Last LMS Activity Timestamp'] >= cutoff_lms) &
+        (sf['Last LMS SAA Timestamp'] >= cutoff_saa)
+    ]
+    st.write(f"\U0001F4C6 After date filters: {len(sf)} students")
 
     # --- Exclude Students Who Already Received Welcome Email ---
     sf['CCC ID'] = sf['CCC ID'].astype(str)
