@@ -69,6 +69,12 @@ if sf is not None and canvas is not None and emailed is not None:
     sf['Date of Enrollment'] = pd.to_datetime(sf['Date of Enrollment'], errors='coerce')
     sf['Last LMS Activity Timestamp'] = pd.to_datetime(sf['Last LMS Activity Timestamp'], errors='coerce')
     sf['Last LMS SAA Timestamp'] = pd.to_datetime(sf['Last LMS SAA Timestamp'], errors='coerce')
+    
+    # --- Check for NaT values after parsing ---
+    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
+    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
+    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
+
 
     # --- Apply Date Filters ---
     today = datetime.today()
