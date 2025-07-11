@@ -119,9 +119,14 @@ if sf is not None and canvas is not None and emailed is not None:
     output_df = pd.merge(filtered_sf, canvas_subset, on='CCC ID', how='inner')
 
     # --- Final Output Display and Export ---
-    st.subheader("\U0001F4CB Students to Welcome (Filtered)")
-    st.write(f"\U0001F3AF **{len(output_df)} students** meet all filter criteria.")
-    st.write(output_df)
+    st.subheader("📋 Students to Welcome (Filtered)")
+    st.write(f"🎯 **{len(output_df)} students** meet all filter criteria.")
+
+    # 🔍 Check for rows missing CCC ID (debugging step)
+    st.write("🕵️‍♀️ Rows with missing CCC ID:", output_df[output_df['CCC ID'].isna()])
+
+st.write(output_df)
+
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"students_to_welcome_{timestamp}.csv"
