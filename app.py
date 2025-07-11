@@ -55,33 +55,37 @@ if sf is not None and canvas is not None and emailed is not None:
     canvas.columns = [col.strip() for col in canvas.columns]
     emailed.columns = [col.strip() for col in emailed.columns]
 
-    # --- Sidebar: User Filter Controls ---
-    st.sidebar.header("🔧 Filter Settings")
+    # --- Convert Salesforce Timestamps to datetime ---
+    sf['Date of Enrollment'] = pd.to_datetime(sf['Date of Enrollment'], errors='coerce')
+    sf['Last LMS Activity Timestamp'] = pd.to_datetime(sf['Last LMS Activity Timestamp'], errors='coerce')
+    sf['Last LMS SAA Timestamp'] = pd.to_datetime(sf['Last LMS SAA Timestamp'], errors='coerce')
 
-    # Filter toggles
+    # --- Toggle Inputs ---
     use_enroll_filter = st.sidebar.checkbox("📅 Filter by Enrollment Date", value=True)
+    days_since_enrollment = st.sidebar.number_input("🗓️ Max Days Since Enrollment", min_value=0, value=30)
     use_lms_filter = st.sidebar.checkbox("📊 Filter by Last LMS Activity", value=True)
+    days_since_lms = st.sidebar.number_input("📘 Max Days Since Last LMS Activity", min_value=0, value=7)
     use_saa_filter = st.sidebar.checkbox("🧠 Filter by Last SAA Activity", value=True)
+    days_since_saa = st.sidebar.number_input("🧪 Max Days Since Last SAA Activity", min_value=0, value=7)
 
-    # Filter input values
-    days_since_enrollment = st.sidebar.number_input("🗓️ Max Days Since Enrollment", min_value=0, value=300)
-    days_since_lms = st.sidebar.number_input("📘 Max Days Since Last LMS Activity", min_value=0, value=14)
-    days_since_saa = st.sidebar.number_input("🧪 Max Days Since Last SAA Activity", min_value=0, value=14)
-
-    # Calculate cutoff dates
+    # --- Cutoff Dates ---
     today = datetime.today()
     cutoff_enroll = today - timedelta(days=days_since_enrollment)
     cutoff_lms = today - timedelta(days=days_since_lms)
     cutoff_saa = today - timedelta(days=days_since_saa)
 
-    # Diagnostics
+    # --- Diagnostics ---
+    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
+    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
+    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
+
     st.write("📅 Date Cutoffs:", {
         "Enrollment": cutoff_enroll if use_enroll_filter else "Disabled",
         "LMS Activity": cutoff_lms if use_lms_filter else "Disabled",
         "SAA Activity": cutoff_saa if use_saa_filter else "Disabled"
     })
 
-    # Start filtering
+    # --- Apply Filters Conditionally ---
     filtered = sf.copy()
     if use_enroll_filter:
         filtered = filtered[filtered['Date of Enrollment'] >= cutoff_enroll]
@@ -95,37 +99,9 @@ if sf is not None and canvas is not None and emailed is not None:
         filtered = filtered[filtered['Last LMS SAA Timestamp'] >= cutoff_saa]
         st.write("🧠 After SAA Activity Filter:", len(filtered))
 
-    sf = filtered  # Update main df
+    sf = filtered  # Final filtered Salesforce
     st.write(f"🧮 After date filters: {len(sf)} students")
 
-
-
-    # --- Log: Initial Salesforce Load ---
-    st.write(f"\U0001F9FE Initial students after loading Salesforce: {len(sf)}")
-
-    # --- Convert Salesforce Timestamps to datetime ---
-    sf['Date of Enrollment'] = pd.to_datetime(sf['Date of Enrollment'], errors='coerce')
-    sf['Last LMS Activity Timestamp'] = pd.to_datetime(sf['Last LMS Activity Timestamp'], errors='coerce')
-    sf['Last LMS SAA Timestamp'] = pd.to_datetime(sf['Last LMS SAA Timestamp'], errors='coerce')
-    
-    # --- Check for NaT values after parsing ---
-    st.write("🧪 Nulls in Enrollment Dates:", sf['Date of Enrollment'].isna().sum())
-    st.write("🧪 Nulls in LMS Activity Dates:", sf['Last LMS Activity Timestamp'].isna().sum())
-    st.write("🧪 Nulls in SAA Dates:", sf['Last LMS SAA Timestamp'].isna().sum())
-
-
-    # --- Apply Date Filters ---
-    today = datetime.today()
-    cutoff_enroll = today - timedelta(days=days_since_enrollment)
-    cutoff_lms = today - timedelta(days=days_since_lms)
-    cutoff_saa = today - timedelta(days=days_since_saa)
-
-    sf = sf[
-        (sf['Date of Enrollment'] >= cutoff_enroll) &
-        (sf['Last LMS Activity Timestamp'] >= cutoff_lms) &
-        (sf['Last LMS SAA Timestamp'] >= cutoff_saa)
-    ]
-    st.write(f"\U0001F4C6 After date filters: {len(sf)} students")
 
     # --- Exclude Students Who Already Received Welcome Email ---
     sf['CCC ID'] = sf['CCC ID'].astype(str)
