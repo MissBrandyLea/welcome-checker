@@ -213,7 +213,7 @@ if sf is not None and canvas is not None and emailed is not None:
         .output-table {{
             max-height: 300px;
             overflow: auto;
-            display: none;
+
         }}
     </style>
 
