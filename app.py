@@ -191,51 +191,45 @@ if sf is not None and canvas is not None and emailed is not None:
     st.download_button("\u2B07\ufe0f Download CSV", data=csv, file_name=filename)
     import streamlit.components.v1 as components
 
-    # Convert output_df to HTML table
-    html_table = output_df.to_html(index=False, classes="dataframe", border=0)
+    import streamlit.components.v1 as components
 
-    # Copyable table with button
-    copy_button_html = f"""
-    <style>
-        .copy-button {{
-            background-color: #4CAF50;
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-            border-radius: 5px;
-        }}
-        .copy-button:hover {{
-            background-color: #45a049;
-        }}
-        .output-table {{
-            max-height: 300px;
-            overflow: auto;
+    # Convert DataFrame to HTML table
+    html_table = output_df.to_html(index=False, classes="output-table", border=0)
 
-        }}
-    </style>
-
-    <button class="copy-button" onclick="copyTable()">📋 Copy Table</button>
-    <div class="output-table">
+    # Add copy button and hidden table
+    components.html(f"""
+        <style>
+            .copy-button {{
+                background-color: #4CAF50;
+                color: white;
+                padding: 5px 10px;
+                border: none;
+                cursor: pointer;
+                font-size: 0.9rem;
+                margin-top: 10px;
+                border-radius: 5px;
+            }}
+            .copy-button:hover {{
+                background-color: #45a049;
+            }}
+            .output-table {{
+                display: none;
+            }}
+        </style>
+        <button class="copy-button" onclick="copyTable()">📋 Copy Table</button>
         {html_table}
-    </div>
+        <script>
+            function copyTable() {{
+                const tableText = document.querySelector('.output-table').innerText;
+                navigator.clipboard.writeText(tableText).then(function() {{
+                    alert('✅ Table copied to clipboard!');
+                }}, function(err) {{
+                    alert('❌ Failed to copy table: ' + err);
+                }});
+            }}
+        </script>
+    """, height=100)
 
-    <script>
-    function copyTable() {{
-        const tableText = document.querySelector('.output-table').innerText;
-        navigator.clipboard.writeText(tableText).then(function() {{
-            alert("✅ Table copied to clipboard!");
-        }}, function(err) {{
-            alert("❌ Failed to copy: " + err);
-        }});
-    }}
-    </script>
-    """
-
-    # Display copyable HTML table
-    components.html(copy_button_html, height=500, scrolling=True)
 
 else:
     st.info("\U0001F446 Please upload all three CSV files to begin.")
