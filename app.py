@@ -182,7 +182,7 @@ if sf is not None and canvas is not None and emailed is not None:
     st.write(f"🎯 **{len(output_df)} students** meet all filter criteria.")
 
     output_df.index = output_df.index + 1  # Shift index to start at 1
-    #st.dataframe(output_df, use_container_width=True)
+    st.dataframe(output_df, use_container_width=True)
 
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -211,9 +211,7 @@ if sf is not None and canvas is not None and emailed is not None:
             background-color: #45a049;
         }}
         .output-table {{
-            max-height: 300px;
-            overflow: auto;
-            display: 'none';
+            display: none;
         }}
     </style>
 
