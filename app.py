@@ -211,6 +211,8 @@ if sf is not None and canvas is not None and emailed is not None:
             background-color: #45a049;
         }}
         .output-table {{
+            max-height: 300px;
+            overflow: auto;
             display: none;
         }}
     </style>
