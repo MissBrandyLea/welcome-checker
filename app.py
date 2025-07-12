@@ -189,46 +189,46 @@ if sf is not None and canvas is not None and emailed is not None:
     filename = f"students_to_welcome_{timestamp}.csv"
     csv = output_df.to_csv(index=False).encode('utf-8')
     st.download_button("\u2B07\ufe0f Download CSV", data=csv, file_name=filename)
-    import streamlit.components.v1 as components
+
 
     import streamlit.components.v1 as components
 
-    # Convert DataFrame to HTML table
-    html_table = output_df.to_html(index=False, classes="output-table", border=0)
+    # Convert DataFrame to TSV string
+    tsv_string = output_df.to_csv(index=False, sep='\t')
 
-    # Add copy button and hidden table
+    # Escape double quotes and newlines for safe HTML/JS embedding
+    escaped_tsv = tsv_string.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "")
+
+    # Add a copy button for TSV content
     components.html(f"""
         <style>
             .copy-button {{
                 background-color: #4CAF50;
                 color: white;
-                padding: 5px 10px;
+                padding: 6px 12px;
                 border: none;
+                border-radius: 5px;
                 cursor: pointer;
                 font-size: 0.9rem;
                 margin-top: 10px;
-                border-radius: 5px;
             }}
             .copy-button:hover {{
                 background-color: #45a049;
             }}
-            .output-table {{
-                display: none;
-            }}
         </style>
-        <button class="copy-button" onclick="copyTable()">📋 Copy Table</button>
-        {html_table}
+        <button class="copy-button" onclick="copyTSV()">📋 Copy Table (TSV)</button>
         <script>
-            function copyTable() {{
-                const tableText = document.querySelector('.output-table').innerText;
-                navigator.clipboard.writeText(tableText).then(function() {{
-                    alert('✅ Table copied to clipboard!');
+            function copyTSV() {{
+                const tsvData = '{escaped_tsv}';
+                navigator.clipboard.writeText(tsvData).then(function() {{
+                    alert('✅ TSV table copied to clipboard! Paste into Sheets.');
                 }}, function(err) {{
-                    alert('❌ Failed to copy table: ' + err);
+                    alert('❌ Failed to copy TSV: ' + err);
                 }});
             }}
         </script>
     """, height=100)
+
 
 
 else:
